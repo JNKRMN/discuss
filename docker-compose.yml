@@ -1,0 +1,10 @@
+version: "2"
+services:
+  app:
+    build:
+      context: .
+      args:
+        - MIX_ENV
+  web:
+    build:
+      context: docker/nginx/.

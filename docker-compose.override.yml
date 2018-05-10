@@ -1,0 +1,21 @@
+version: "2"
+services:
+  web:
+    build: ./docker/nginx
+    links:
+      - app
+    network_mode: bridge
+    ports:
+      - 8080:80
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile.build
+    command: ./dev-start.sh 
+    network_mode: bridge
+    environment:
+      - MIX_ENV=dev
+    ports:
+      - 4000-4010:4000-4010
+    volumes:
+      - ".:/opt/app"

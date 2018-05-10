@@ -1,0 +1,29 @@
+FROM elixir:1.5.2-alpine
+
+# Set the locale
+ENV LANG en_US.UTF-8
+ENV LANGUAGE en_US:en
+ENV LC_ALL en_US.UTF-8
+
+USER root
+
+RUN apk update \
+    && apk upgrade \
+    && apk add --update make gcc alpine-sdk openssl openssl-dev gawk wget git curl fish bash
+
+WORKDIR /app
+
+RUN mix local.hex --force \
+    && mix local.rebar --force \
+    && mix archive.install https://github.com/phoenixframework/archives/raw/master/phoenix_new.ez --force
+
+# move contents of scripts to /docker instead of creating duplicate files in the container.
+COPY . ./
+
+ARG MIX_ENV
+ARG HEX_WEEDMAPS_ORGANIZATION_KEY
+
+RUN chmod go+x docker/elixir/scripts/* \
+    && mix do hex.organization auth weedmaps --key $HEX_WEEDMAPS_ORGANIZATION_KEY, deps.get, compile
+
+CMD mix release --env=prod
