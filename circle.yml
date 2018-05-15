@@ -1,0 +1,49 @@
+machine:
+  environment:
+    DOCKER_REGISTRY: docker-registry.weedmaps.com
+    SHA: ":$CIRCLE_SHA1"
+    BRANCH: $CIRCLE_BRANCH
+    REPOSITORY: ${CIRCLE_PROJECT_REPONAME}
+    APPLICATION_ENVIRONMENT: production
+    DEPLOY_ENVIRONMENT: acceptance
+    MIX_ENV: test
+dependencies:
+  pre:
+    - |
+      wget https://packages.erlang-solutions.com/erlang-solutions_1.0_all.deb -O /tmp/erlang-solutions_1.0_all.deb
+      sudo dpkg -i /tmp/erlang-solutions_1.0_all.deb
+      sudo rm /tmp/erlang-solutions_1.0_all.deb
+      # needed because of intermittent failures of uninstalling the bundled couchdb
+      sudo rm -rfv /etc/rc2.d/K80couchdb
+      sudo apt-get update
+      sudo apt-get install -y esl-erlang=1:20.0 elixir=1.5.1-1
+      mix local.hex --force
+      mix local.rebar --force
+      mix dialyzer --plt
+      mix deps.get
+  override:
+    - mix deps.get
+    - mix clean && mix compile --warnings-as-errors
+    - mix credo --strict
+  post:
+    - wget -O script/secrets/jenkins_credentials https://provision-weedmaps.s3-us-west-2.amazonaws.com/jenkins_credentials
+    - script/secrets/crypto -d script/secrets/jenkins_credentials
+  cache_directories:
+    - deps
+    - _build
+test:
+  override:
+    # - mix test
+    # - MIX_ENV=test mix dialyzer --halt-exit-status
+# deployment:
+#  acceptance:
+#    branch: develop
+#    commands:
+#      - curl https://provision-weedmaps.s3-us-west-2.amazonaws.com/bin/start_jenkins_task.sh | JENKINS_JOB=build_docker_images bash
+#      - curl https://provision-weedmaps.s3-us-west-2.amazonaws.com/bin/start_jenkins_task.sh | APPLICATION_ENVIRONMENT=acc DEPLOY_ENVIRONMENT=acceptance JENKINS_JOB=rancher_deploy bash
+#  test:
+#    branch: task-OPS-1820-saffolding
+#    commands:
+#      - curl https://provision-weedmaps.s3-us-west-2.amazonaws.com/bin/start_jenkins_task.sh | JENKINS_JOB=build_docker_images bash
+#      - curl https://provision-weedmaps.s3-us-west-2.amazonaws.com/bin/start_jenkins_task.sh | APPLICATION_ENVIRONMENT=test DEPLOY_ENVIRONMENT=test JENKINS_JOB=rancher_deploy bash
+

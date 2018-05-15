@@ -1,0 +1,42 @@
+# https://docs.docker.com/compose/extends/
+# This file gets automtatically loaded via docker-compose/rancher-compose.
+#
+# It's used to set local dev specific overrides for volumes and ports.
+#
+# In local dev we use the docker-compose.override.yml as the override removing ports
+# and local volumes bound to the host.
+#
+# YAML (String|Integer) get replaced/overridden
+# YAML Arrays get merged/appended opposed to overridden
+version: "2"
+services:
+  # nginx has been added to the stack to allow for drop in web log events/analysis in ELK
+  # it does lots of other cool things too.
+  web:
+    image: docker-registry.weedmaps.com/${APP_NAME}/nginx:latest
+    links:
+      - app
+    ports:
+      - 80
+    labels:
+      io.rancher.scheduler.global: 'true'
+      io.rancher_activelb.visibility: private
+      # route traffic through nginx to elixir for our user facing service.
+      io.rancher_activelb.server_names: ${APP_NAME}-${deploy_environment}.weedmaps.com:80
+    environment:
+      # these add fields and tags in the ELK dashboards for filtering/aggregation
+      - LOGSTASH_TAGS=${APP_NAME},${deploy_environment},nginx,web
+      - LOGSTASH_FIELDS=stack=${APP_NAME},service=web,deploy_environment=${deploy_environment},sha=${sha},application_environment=${application_environment}
+    command: bin/start.sh
+  app:
+    image: docker-registry.weedmaps.com/${APP_NAME}/app:${sha}
+    # rancher doesn't support port-port ranges at the moment ;(
+    ports:
+      - 4000
+    labels:
+      io.rancher.scheduler.global: 'true'
+    environment:
+      # these add fields and tags in the ELK dashboards for filtering/aggregation
+      - LOGSTASH_TAGS=${APP_NAME},${deploy_environment},elixir,app
+      - LOGSTASH_FIELDS=stack=${APP_NAME},service=elixir,deploy_environment=${deploy_environment},sha=${sha},application_environment=${application_environment}
+    command: mix phx.server

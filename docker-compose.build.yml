@@ -1,0 +1,18 @@
+# https://docs.docker.com/compose/extends/
+# The dockerfile has been split into 3 parts to support multiple environments.
+# This file contains just about everything except for host bound ports and volumes
+#
+# Local Dev port and volume settings go in docker-compose.override.yml
+version: "2"
+services:
+  release:
+    build:
+      context: .
+      dockerfile: Dockerfile.build
+      args:
+        - MIX_ENV
+        - HEX_WEEDMAPS_ORGANIZATION_KEY
+    volumes:
+        - $PWD/release:/app/_build/$MIX_ENV/rel
+    environment:
+      - MIX_ENV
