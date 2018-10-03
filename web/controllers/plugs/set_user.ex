@@ -14,7 +14,6 @@ defmodule Discuss.Plugs.SetUser do
     cond do
       user = user_id && Repo.get(User, user_id) ->
         assign(conn, :user, user)
-        # conn.assigns.user => user struct
       true ->
         assign(conn, :user, nil)
     end

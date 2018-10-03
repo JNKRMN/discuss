@@ -4,13 +4,11 @@ defmodule Discuss.TopicController do
   alias Discuss.Topic
 
   plug Discuss.Plugs.RequireAuth when action in [:new, :create, :edit, :update, :delete]
-  plug :check_topic_owner when action in [:edit, :update, :delete]
-
+  plug :check_topic_owner when action in [:update, :edit, :delete]
 
   def index(conn, _params) do
-    IO.inspect(conn.assigns)
     topics = Repo.all(Topic)
-    render(conn, "index.html", topics: topics)
+    render conn, "index.html", topics: topics
   end
 
   def show(conn, %{"id" => topic_id}) do
@@ -21,7 +19,7 @@ defmodule Discuss.TopicController do
   def new(conn, _params) do
     changeset = Topic.changeset(%Topic{}, %{})
 
-    render(conn, "new.html", changeset: changeset)
+    render conn, "new.html", changeset: changeset
   end
 
   def create(conn, %{"topic" => topic}) do
@@ -34,10 +32,8 @@ defmodule Discuss.TopicController do
         conn
         |> put_flash(:info, "Topic Created")
         |> redirect(to: topic_path(conn, :index))
-
       {:error, changeset} ->
-        IO.inspect(changeset)
-        render(conn, "new.html", changeset: changeset)
+        render conn, "new.html", changeset: changeset
     end
   end
 
